@@ -1,106 +1,67 @@
 import numpy as np
-
 import default
 from utility import show_connections
+class Cognit():
+    def __init__(self):
+        self.column_activation_list = []
+        self.sensor_activation_list = []
+        self.sensor_list = []
+        self.columns_list = []
+        self.layer_list = []
+    def create_sensor(self, comment = ''):
+        sensor = Sensor(comment, self)
+        self.sensor_list = self.sensor_list + [sensor]
 
-def record_connections(item, record_inputs, record_outputs):
-    if record_inputs == True:
-        if len(item.input_connections) != 0:
-            for connection in item.input_connections:
-                connection.input_record = connection.input.activation
-                connection.output_record = connection.output.activation
-    if record_outputs == True:
-        if len(item.output_connections) != 0:
-            for connection in item.output_connections:
-                connection.input_record = connection.input.activation
-                connection.output_record = connection.output.activation
+    def feed_sensors(self, signal_list):
+        if len(signal_list) == len(self.sensor_list):
+            for i in range(len(signal_list)):
+                self.sensor_list[i].activation = signal_list[i]
+        else: print('sensor inputs dont match')
+    def activate_sensors(self):
+        for sensor in self.sensor_list:
+            if sensor not in self.sensor_activation_list:
+                self.sensor_activation_list = self.sensor_activation_list + [sensor]
 
-def connect(entity1, entity2, weight = default.weight):
+    def add_layer(self, comment, n_columns, n_interneurons, n_dendrites):
+        layer = Layer(cognit = self, n_columns = n_columns, comment = comment, n_interneurons = n_interneurons, n_dendrites = n_dendrites)
+        self.layer_list = self.layer_list + [layer]
+        for column in layer.columns_list:
+            self.columns_list = self.columns_list + [column]
 
-    connection = Connection(n_input=entity1, n_output=entity2, durability=1.0)
-    connection.weight = weight
-    entity2.input_connections = entity2.input_connections + [connection]
-    entity1.output_connections = entity1.output_connections + [connection]
-class Sensor():
-    def __init__(self, comment = '', cognit = None):
-        self.comment = comment
-        self.activation = 0.0
-        self.output_connections = []
+    def clean_up(self):
+        for column in self.column_activation_list:
+            column.clean_up()
+    def do_cycle(self):
+        #activation
+        self.column_activation_list = []
+        self.sensor_activation_list = []
+        self.activate_sensors()
+        for sensor in self.sensor_activation_list:
+            sensor.feed_forward()
+        if len(self.column_activation_list) != 0:
+            i = 0
+            while i < len(self.column_activation_list):
+                self.column_activation_list[i].feed_forward()
+                i += 1
+
+    def learn(self):
+        for column in self.column_activation_list:
+            index = self.column_activation_list.index(column)
+            if index < (len(self.column_activation_list) - 1):
+                for j in range(index, len(self.column_activation_list)):
+                    column.add_to_pool(self.column_activation_list[j])
+
+
+        # for column in self.column_activation_list:
+        #     column.learn()
+class Layer():
+    def __init__(self, cognit, comment, n_columns, n_interneurons, n_dendrites):
+        self.columns_list = []
         self.cognit = cognit
-
-    def feed_forward(self):
-        for connection in self.output_connections:
-            if self.activation != 0:
-                connection.output.stored_activation += self.activation * connection.weight
-                connection.output.stored_count += 1
-                if connection.output.column not in self.cognit.column_activation_list:
-                    self.cognit.column_activation_list = self.cognit.column_activation_list + [connection.output.column]
-
-        record_connections(self,record_inputs=False, record_outputs=True)
-class Interneuron():
-    def __init__(self, dendrites_number, column = None):
-        self.activation = 0.0
-        self.stored_activation = 0.0
-        self.stored_count = 0
-        self.number_of_activations = 0
-        self.pool = []
-        self.dendrites = []
-        self.column = column
-        self.prime = 0.0
-        self.activation_function = 100.0
-        self.threshold = default.activation_function_threshold
-        self.neuron_threshold = default.neuron_threshold
-        self.comment = ''
-
-        for i in range(dendrites_number):
-            dendrite = Dendrite()
-            dendrite.neuron = self
-            self.dendrites = self.dendrites + [dendrite]
-
-        self.input_connections = []
-        self.output_connections = []
-
-    def add_output_to_pool(self, backward_output_neuron):
-        self.pool = self.pool + [[backward_output_neuron, default.to_pool_start]]
-        print(self.comment + ' added to ' + backward_output_neuron.comment + ' pool')
-class Inhibition_Neuron:
-    def __init__(self, column = None):
-        self.activation = 0.0
-        self.pool = []
-        self.input_connections = []
-        self.column = column
-        self.comment = ''
-        self.stored_activation = 0.0
-        self.stored_count = 0
-class Dendrite():
-    def __init__(self, column = None):
-        self.column = column
-        self.neuron = None
-        self.pool = []
-        self.input_connections = []
-        self.activation = 0.0
-        self.stored_activation = 0.0
-        self.stored_count = 0
-        self.threshold = default.dendrite_threshold
-        self.threshold_percent = default.dendrite_threshold_percent
-
-class Connection():
-    def __init__(self, n_input, n_output, durability = default.durability):
-        self.input = n_input
-        self.output = n_output
-        self.output_column = self.output.column
-        self.weight = default.weight
-        self.durability = durability
-        self.input_record = 0.0
-        self.output_record = 0.0
-        self.activation_flag = False
-class Output_Neuron():
-    def __init__(self, column = None):
-        self.activation = 0.0
-        self.activation_count = 0
-        self.output_connections = []
-        self.column = column
-        self.comment = ''
+        self.comment = comment
+        for i in range(n_columns):
+            column = Column(cognit, layer = self, interneurons_number = n_interneurons, dendrites_number = n_dendrites, comment = comment + '_' + str(i))
+            self.columns_list = self.columns_list + [column]
 class Column():
     def __init__(self, cognit, layer, interneurons_number, dendrites_number, comment):
 
@@ -233,67 +194,99 @@ class Column():
             for column in column_list:
                 if column not in self.body_receptive_field:
                     self.body_receptive_field = self.body_receptive_field + [column]
+class Inhibition_Neuron:
+    def __init__(self, column = None):
+        self.activation = 0.0
+        self.pool = []
+        self.input_connections = []
+        self.column = column
+        self.comment = ''
+        self.stored_activation = 0.0
+        self.stored_count = 0
+class Interneuron():
+    def __init__(self, dendrites_number, column = None):
+        self.activation = 0.0
+        self.stored_activation = 0.0
+        self.stored_count = 0
+        self.number_of_activations = 0
+        self.pool = []
+        self.dendrites = []
+        self.column = column
+        self.prime = 0.0
+        self.activation_function = 100.0
+        self.threshold = default.activation_function_threshold
+        self.neuron_threshold = default.neuron_threshold
+        self.comment = ''
 
-class Layer():
-    def __init__(self, cognit, comment, n_columns, n_interneurons, n_dendrites):
-        self.columns_list = []
-        self.cognit = cognit
+        for i in range(dendrites_number):
+            dendrite = Dendrite()
+            dendrite.neuron = self
+            self.dendrites = self.dendrites + [dendrite]
+
+        self.input_connections = []
+        self.output_connections = []
+
+    def add_output_to_pool(self, backward_output_neuron):
+        self.pool = self.pool + [[backward_output_neuron, default.to_pool_start]]
+        print(self.comment + ' added to ' + backward_output_neuron.comment + ' pool')
+class Dendrite():
+    def __init__(self, column = None):
+        self.column = column
+        self.neuron = None
+        self.pool = []
+        self.input_connections = []
+        self.activation = 0.0
+        self.stored_activation = 0.0
+        self.stored_count = 0
+        self.threshold = default.dendrite_threshold
+        self.threshold_percent = default.dendrite_threshold_percent
+class Output_Neuron():
+    def __init__(self, column = None):
+        self.activation = 0.0
+        self.activation_count = 0
+        self.output_connections = []
+        self.column = column
+        self.comment = ''
+class Sensor():
+    def __init__(self, comment = '', cognit = None):
         self.comment = comment
-        for i in range(n_columns):
-            column = Column(cognit, layer = self, interneurons_number = n_interneurons, dendrites_number = n_dendrites, comment = comment + '_' + str(i))
-            self.columns_list = self.columns_list + [column]
+        self.activation = 0.0
+        self.output_connections = []
+        self.cognit = cognit
 
-class Cognit():
-    def __init__(self):
-        self.column_activation_list = []
-        self.sensor_activation_list = []
-        self.sensor_list = []
-        self.columns_list = []
-        self.layer_list = []
-    def create_sensor(self, comment = ''):
-        sensor = Sensor(comment, self)
-        self.sensor_list = self.sensor_list + [sensor]
+    def feed_forward(self):
+        for connection in self.output_connections:
+            if self.activation != 0:
+                connection.output.stored_activation += self.activation * connection.weight
+                connection.output.stored_count += 1
+                if connection.output.column not in self.cognit.column_activation_list:
+                    self.cognit.column_activation_list = self.cognit.column_activation_list + [connection.output.column]
 
-    def feed_sensors(self, signal_list):
-        if len(signal_list) == len(self.sensor_list):
-            for i in range(len(signal_list)):
-                self.sensor_list[i].activation = signal_list[i]
-        else: print('sensor inputs dont match')
-    def activate_sensors(self):
-        for sensor in self.sensor_list:
-            if sensor not in self.sensor_activation_list:
-                self.sensor_activation_list = self.sensor_activation_list + [sensor]
+        record_connections(self,record_inputs=False, record_outputs=True)
+class Connection():
+    def __init__(self, n_input, n_output, durability = default.durability):
+        self.input = n_input
+        self.output = n_output
+        self.output_column = self.output.column
+        self.weight = default.weight
+        self.durability = durability
+        self.input_record = 0.0
+        self.output_record = 0.0
+        self.activation_flag = False
+def record_connections(item, record_inputs, record_outputs):
+    if record_inputs == True:
+        if len(item.input_connections) != 0:
+            for connection in item.input_connections:
+                connection.input_record = connection.input.activation
+                connection.output_record = connection.output.activation
+    if record_outputs == True:
+        if len(item.output_connections) != 0:
+            for connection in item.output_connections:
+                connection.input_record = connection.input.activation
+                connection.output_record = connection.output.activation
+def connect(entity1, entity2, weight = default.weight):
 
-    def add_layer(self, comment, n_columns, n_interneurons, n_dendrites):
-        layer = Layer(cognit = self, n_columns = n_columns, comment = comment, n_interneurons = n_interneurons, n_dendrites = n_dendrites)
-        self.layer_list = self.layer_list + [layer]
-        for column in layer.columns_list:
-            self.columns_list = self.columns_list + [column]
-
-    def clean_up(self):
-        for column in self.column_activation_list:
-            column.clean_up()
-    def do_cycle(self):
-        #activation
-        self.column_activation_list = []
-        self.sensor_activation_list = []
-        self.activate_sensors()
-        for sensor in self.sensor_activation_list:
-            sensor.feed_forward()
-        if len(self.column_activation_list) != 0:
-            i = 0
-            while i < len(self.column_activation_list):
-                self.column_activation_list[i].feed_forward()
-                i += 1
-
-    def learn(self):
-        for column in self.column_activation_list:
-            index = self.column_activation_list.index(column)
-            if index < (len(self.column_activation_list) - 1):
-                for j in range(index, len(self.column_activation_list)):
-                    column.add_to_pool(self.column_activation_list[j])
-
-
-        # for column in self.column_activation_list:
-        #     column.learn()
-
+    connection = Connection(n_input=entity1, n_output=entity2, durability=1.0)
+    connection.weight = weight
+    entity2.input_connections = entity2.input_connections + [connection]
+    entity1.output_connections = entity1.output_connections + [connection]
