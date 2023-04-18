@@ -1,6 +1,4 @@
-import numpy as np
 import default
-from utility import show_connections
 class Cognit():
     def __init__(self):
         self.column_activation_list = []
@@ -8,31 +6,39 @@ class Cognit():
         self.sensor_list = []
         self.columns_list = []
         self.layer_list = []
+
+    ## Creating sensor and adding it to list ##
     def create_sensor(self, comment = ''):
         sensor = Sensor(comment, self)
         self.sensor_list = self.sensor_list + [sensor]
 
+    ## Getting signal list from signal constructor and feeding it to sensors ##
     def feed_sensors(self, signal_list):
         if len(signal_list) == len(self.sensor_list):
             for i in range(len(signal_list)):
                 self.sensor_list[i].activation = signal_list[i]
         else: print('sensor inputs dont match')
+
+    ## Sensors that have some signal go to sensor activation list ##
     def activate_sensors(self):
         for sensor in self.sensor_list:
             if sensor not in self.sensor_activation_list:
                 self.sensor_activation_list = self.sensor_activation_list + [sensor]
 
+    ## Adding layer of equal columns to cognit ##
     def add_layer(self, comment, n_columns, n_interneurons, n_dendrites):
         layer = Layer(cognit = self, n_columns = n_columns, comment = comment, n_interneurons = n_interneurons, n_dendrites = n_dendrites)
         self.layer_list = self.layer_list + [layer]
         for column in layer.columns_list:
             self.columns_list = self.columns_list + [column]
 
+    ## Zeroing activations after feed forward ##
     def clean_up(self):
         for column in self.column_activation_list:
             column.clean_up()
+
+    ## Feed forwarding sensors and columns in cognit ##
     def do_cycle(self):
-        #activation
         self.column_activation_list = []
         self.sensor_activation_list = []
         self.activate_sensors()
@@ -44,6 +50,7 @@ class Cognit():
                 self.column_activation_list[i].feed_forward()
                 i += 1
 
+    ## Learning weights in cognit ##
     def learn(self):
         for column in self.column_activation_list:
             index = self.column_activation_list.index(column)
@@ -54,6 +61,7 @@ class Cognit():
 
         # for column in self.column_activation_list:
         #     column.learn()
+
 class Layer():
     def __init__(self, cognit, comment, n_columns, n_interneurons, n_dendrites):
         self.columns_list = []
@@ -62,6 +70,7 @@ class Layer():
         for i in range(n_columns):
             column = Column(cognit, layer = self, interneurons_number = n_interneurons, dendrites_number = n_dendrites, comment = comment + '_' + str(i))
             self.columns_list = self.columns_list + [column]
+
 class Column():
     def __init__(self, cognit, layer, interneurons_number, dendrites_number, comment):
 
@@ -83,6 +92,8 @@ class Column():
 
         self.body_receptive_field = []
         self.dendrite_receptive_field = []
+
+    ## Feed forward inside the column (winner interneuron takes all based on activation function) ##
     def feed_forward(self):
 
         self.output_neuron.activation = 0.0
@@ -91,6 +102,7 @@ class Column():
         self.activate_interneurons()
         self.activate_output()
 
+    ## Inhibition of interneurons: preinhibition + activation function calculation + inhibition ##
     def inhibit(self):
         ## Preinhibition ##
         if self.inhibition_neuron.stored_count != 0:
@@ -130,6 +142,7 @@ class Column():
             else:
                 neuron.activation_function = 100.0
                 neuron.activation = 0.0
+
         ## Inhibition based on activation function ##
         A_min = 100.0
         neuron_min = None
@@ -143,6 +156,8 @@ class Column():
                 if neuron != neuron_min:
                     neuron.activation -= self.inhibition_neuron.activation
                     neuron.activation = max(0.0,neuron.activation)
+
+    ## Calculating activation of interneurons after inhibition ##
     def activate_interneurons(self):
         for neuron in self.interneurons:
             if neuron.activation > neuron.neuron_threshold:
@@ -156,6 +171,8 @@ class Column():
             else:
                 neuron.activation = 0.0
             record_connections(neuron, record_inputs=True, record_outputs=True)
+
+    ## Calculating activation of output neuron ##
     def activate_output(self):
         if self.output_neuron.activation != 0:
             for connection in self.output_neuron.output_connections:
@@ -165,12 +182,14 @@ class Column():
                     self.cognit.column_activation_list = self.cognit.column_activation_list + [connection.output.column]
         record_connections(self.output_neuron, record_inputs=False, record_outputs=True)
 
+    ## Cleaning up activations inside column after feed forward ##
     def clean_up(self):
         self.inhibition_neuron.activation = 0.0
         for neuron in self.interneurons:
             neuron.activation = 0.0
         self.output_neuron.activation = 0.0
 
+    ## Learning synapses durbility ##
     def learn(self):
         for neuron in self.interneurons:
             if len(neuron.input_connections) != 0:
@@ -180,6 +199,7 @@ class Column():
                     elif connection.output.activation !=0 or connection.input.activation != 0:
                         connection.durability -= 0.01
 
+    ## Add column from receptive field to pool of column (to interneurons) ##
     def add_to_pool(self, forward_column):
         if self in forward_column.body_receptive_field and self.output_neuron.activation != 0:
             for neuron in forward_column.interneurons:
@@ -189,11 +209,13 @@ class Column():
                             if connection.input != self.output_neuron:
                                 neuron.add_output_to_pool(self.output_neuron)
 
+    ## Adding list of columns to receptive field ##
     def add_to_receptive_field(self, column_list, field_type):
         if field_type == 'body':
             for column in column_list:
                 if column not in self.body_receptive_field:
                     self.body_receptive_field = self.body_receptive_field + [column]
+
 class Inhibition_Neuron:
     def __init__(self, column = None):
         self.activation = 0.0
@@ -226,6 +248,7 @@ class Interneuron():
         self.input_connections = []
         self.output_connections = []
 
+    ## Adding OUTPUT of another column to INTERNEURONS pool
     def add_output_to_pool(self, backward_output_neuron):
         self.pool = self.pool + [[backward_output_neuron, default.to_pool_start]]
         print(self.comment + ' added to ' + backward_output_neuron.comment + ' pool')
