@@ -1,9 +1,10 @@
 import numpy as np
 import pandas as pd
 import pickle
-from classes import Cognit, connect
+from classes import Cognit
 from utility import show_connections, create_activations_history, record_activations_history, create_durability_history, record_durability_history
 from sensors import Sensor_Pattern
+from learning import learn
 
 if __name__ == "__main__":
 
@@ -23,11 +24,11 @@ if __name__ == "__main__":
 
     durability_history = create_durability_history(for_record_durability)
     activation_history = create_activations_history(for_record_activations)
-    for i in range(1000):
+    for i in range(100):
         signal_list = sensor_pattern.get_sensor_pattern(i)
         cognit.feed_sensors(signal_list)
         cognit.do_cycle()
-        cognit.learn()
+        learn(cognit)
         durability_history = record_durability_history(durability_history, for_record_durability)
         activation_history = record_activations_history(activation_history, for_record_activations)
         cognit.clean_up()

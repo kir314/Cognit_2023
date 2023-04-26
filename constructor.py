@@ -1,5 +1,6 @@
 import pickle
-from classes import Cognit, Column, Connection, Sensor, connect
+from classes import Cognit, Column, Connection, Sensor
+from utility import connect
 
 if __name__ == "__main__":
    cognit = Cognit()

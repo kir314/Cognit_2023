@@ -1,7 +1,7 @@
 import pickle
 import numpy as np
 import pandas as pd
-from classes import Cognit, Column, Connection, Sensor, connect
+from classes import Cognit, Column, Connection, Sensor
 from utility import show_connections
 
 

@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from classes import Connection
 
 
 def add_connection_array(connection, show_array, non_zero):
@@ -86,3 +87,9 @@ def record_durability_history(history, connections_list):
     temp = pd.DataFrame(columns = columns, data = [durabilities])
     history = pd.concat([history, temp])
     return history
+
+def connect(entity1, entity2):
+
+    connection = Connection(n_input=entity1, n_output=entity2, durability=1.0)
+    entity2.input_connections = entity2.input_connections + [connection]
+    entity1.output_connections = entity1.output_connections + [connection]
