@@ -5,3 +5,6 @@ neuron_threshold = 0.1
 weight = 1.0
 durability = 0.5
 to_pool_start = 0.1
+pool_to_connection_threshold = 0.3
+up_durability = 0.03
+down_durability = 0.06

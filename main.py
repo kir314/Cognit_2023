@@ -13,30 +13,17 @@ if __name__ == "__main__":
     with open('current_pattern.pickle', 'rb') as f:
         sensor_pattern = pickle.load(f)
 
-    for_record_durability = [cognit.columns_list[0].output_neuron.output_connections[0],
-                             cognit.columns_list[1].output_neuron.output_connections[0],
-                             cognit.columns_list[2].output_neuron.output_connections[0],
-                             cognit.columns_list[3].output_neuron.output_connections[0],
-                             cognit.columns_list[5].output_neuron.output_connections[0],
-                             cognit.columns_list[5].output_neuron.output_connections[1],
-                             cognit.columns_list[5].output_neuron.output_connections[2],
-                             cognit.columns_list[5].output_neuron.output_connections[3],
-                             cognit.columns_list[6].output_neuron.output_connections[0],
-                             cognit.columns_list[6].output_neuron.output_connections[1],
-                             cognit.columns_list[6].output_neuron.output_connections[2],
-                             cognit.columns_list[6].output_neuron.output_connections[3],
-                             ]
-    durability_history = create_durability_history(for_record_durability)
+    for_record_durability = []
+    for_record_activations = []
+    for column in cognit.columns_list:
+        if len(column.output_neuron.output_connections) != 0:
+            for j in range(len(column.output_neuron.output_connections)):
+                for_record_durability = for_record_durability + [column.output_neuron.output_connections[j]]
+                for_record_activations = for_record_activations + [column.output_neuron]
 
-    for_record_activations = [cognit.columns_list[0].output_neuron,
-                              cognit.columns_list[1].output_neuron,
-                              cognit.columns_list[2].output_neuron,
-                              cognit.columns_list[3].output_neuron,
-                              cognit.columns_list[4].output_neuron,
-                              cognit.columns_list[5].output_neuron,
-                              cognit.columns_list[6].output_neuron]
+    durability_history = create_durability_history(for_record_durability)
     activation_history = create_activations_history(for_record_activations)
-    for i in range(20):
+    for i in range(1000):
         signal_list = sensor_pattern.get_sensor_pattern(i)
         cognit.feed_sensors(signal_list)
         cognit.do_cycle()

@@ -26,6 +26,8 @@ class Sensor_Pattern:
 if __name__ == "__main__":
     sensor_pattern = Sensor_Pattern()
     sensor_pattern.add_to_pattern([0.9, 0.9, 0.4, 0.4, 0.0])
+    sensor_pattern.add_to_pattern([0.9, 0.9, 0.4, 0.4, 0.0])
+    sensor_pattern.add_to_pattern([0.9, 0.9, 0.4, 0.4, 0.5])
     # sensor_pattern.add_to_pattern([0.2, 0.2, 0.2, 0.2])
 
     with open('current_pattern.pickle', 'wb') as f:
