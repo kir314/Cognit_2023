@@ -4,21 +4,21 @@ import numpy as np
 import default
 
 def learn(cognit):
-    for column in cognit.column_activation_list:
-        index = cognit.column_activation_list.index(column)
-        if index < (len(cognit.column_activation_list) - 1):
-            for j in range(index, len(cognit.column_activation_list)):
-                add_to_pool(column, cognit.column_activation_list[j])
+    for column in cognit.activation_list:
+        index = cognit.activation_list.index(column)
+        if index < (len(cognit.activation_list) - 1):
+            for j in range(index, len(cognit.activation_list)):
+                add_to_pool(column, cognit.activation_list[j])
 
-    for column in cognit.column_activation_list:
+    for column in cognit.activation_list:
         adjust_real_durability(column)
         adjust_pool_durability(column)
 
- ## Add column from receptive field to pool of column (to interneurons) ##
+ ## Add column from receptive field to pool of column (to interneuron) ##
 
 def add_to_pool(column, forward_column):
     if column in forward_column.body_receptive_field and column.output_neuron.activation != 0:
-        for neuron in forward_column.interneurons:
+        for neuron in forward_column.interneuron:
             if neuron.pool.size != 0:
                 if (column.output_neuron not in neuron.pool[:,0]) and neuron.activation != 0:
                     not_connected_already = True
@@ -35,10 +35,10 @@ def add_to_pool(column, forward_column):
                         neuron.add_output_to_pool(column.output_neuron)
 
     if column in forward_column.dendrite_receptive_field:
-        for neuron in forward_column.interneurons:
+        for neuron in forward_column.interneuron:
             for dendrite in neuron.dendrites:
                 if dendrite.activation != 0 or neuron.activation != 0:
-                    for backward_interneuron in column.interneurons:
+                    for backward_interneuron in column.interneuron:
                         if dendrite.pool.size != 0:
                             if (backward_interneuron not in dendrite.pool[:, 0]):
                                 not_connected_already = True
@@ -54,7 +54,7 @@ def add_to_pool(column, forward_column):
                                 dendrite.add_interneuron_to_pool(backward_interneuron)
 
 def adjust_real_durability(column):
-    for neuron in column.interneurons:
+    for neuron in column.interneuron:
         if len(neuron.input_connections) != 0 and neuron.activation != 0:
             for connection in neuron.input_connections:
                 if connection.input.activation != 0:
@@ -85,7 +85,7 @@ def adjust_real_durability(column):
                         del dendrite.input_connections[connection_index]
 
 def adjust_pool_durability(column):
-    for neuron in column.interneurons:
+    for neuron in column.interneuron:
         if len(neuron.pool) != 0 and neuron.activation != 0:
             for i in range(neuron.pool.shape[0]):
                 if neuron.pool[i,0].activation != 0:

@@ -45,7 +45,7 @@ def show_connections(cognit, non_zero = True):
     for column in cognit.column_activation_list:
         for connection in column.inhibition_neuron.input_connections:
             show_array = add_connection_array(connection, show_array, non_zero)
-        for interneuron in column.interneurons:
+        for interneuron in column.interneuron:
             for connection in interneuron.input_connections:
                 show_array = add_connection_array(connection, show_array, non_zero)
             for connection in interneuron.output_connections:
@@ -90,6 +90,23 @@ def record_durability_history(history, connections_list):
 
 def connect(entity1, entity2):
 
-    connection = Connection(n_input=entity1, n_output=entity2, durability=1.0)
-    entity2.input_connections = entity2.input_connections + [connection]
-    entity1.output_connections = entity1.output_connections + [connection]
+    ready_flag = True
+    for output_connection in entity1.output_connections:
+        if output_connection.output  == entity2:
+            ready_flag = False
+    if ready_flag:
+        connection = Connection(n_input=entity1, n_output=entity2, durability=1.0)
+        entity2.input_connections = entity2.input_connections + [connection]
+        entity1.output_connections = entity1.output_connections + [connection]
+
+def disconnect(entity1, entity2):
+    if len(entity1.output_connections) != 0:
+        for connection in entity1.output_connections:
+            if connection.output == entity2:
+                out_index = entity1.output_connections.index(connection)
+                del entity1.output_connections[out_index]
+        for connection in entity2.input_connections:
+            if connection.input == entity1:
+                in_index = entity2.input_connections.index(connection)
+                del entity2.input_connections[in_index]
+
