@@ -8,3 +8,5 @@ to_pool_start = 0.1
 pool_to_connection_threshold = 0.3
 up_durability = 0.03
 down_durability = 0.06
+inhibitory_coefficient = 0.2
+suppression = 1.0

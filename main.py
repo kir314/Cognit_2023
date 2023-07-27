@@ -610,7 +610,7 @@ class UiMainWindow(object):    ## Main window, partially QtDesigner generated ##
                 ## Activation of columns ##
                 activation = 0.0
                 for neuron in cognit.layer[i].column[x_index].interneuron:
-                    activation = max(activation, neuron.trace_activation)
+                    activation = max(activation, neuron.activation)
                 draw_rectangle = plt.Rectangle(((x_position - rec_size / 2), (y_position - rec_size / 2)),
                                                height=rec_size * activation,
                                                width=rec_size * activation,
@@ -662,7 +662,7 @@ if __name__ == "__main__":
     with open('current_cognit.pickle', 'rb') as f:
         cognit = pickle.load(f)
     # cognit.column[3].interneuron[0].threshold = 0.5
-    signal_array_list = [[0.5, 0.0, 0.0], [0.5]]
+    signal_array_list = [[0.0, 0.5, 0.0, 0.0, 0.0], [0.5]]
     import sys
 
     app = QtWidgets.QApplication(sys.argv)
