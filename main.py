@@ -344,10 +344,13 @@ class SensorsWindow(QtWidgets.QWidget):
 
 
     def sensor_1d_changed(self):
-        current_sensor_array_index = self.sensor_1d_box.currentIndex()
+        # current_sensor_array_index = self.sensor_1d_box.currentIndex()
+        current_sensor_array_text = self.sensor_1d_box.currentText()
         current_sensor_index = self.sensor_1d_box_index.currentIndex()
         current_value = float(self.sensor_1d_value.text())
-        cognit.sensor[current_sensor_array_index].sensor[current_sensor_index].activation = current_value
+        for sensor_layer in cognit.sensor_layer:
+            if sensor_layer.comment == current_sensor_array_text:
+                cognit.sensor[current_sensor_array_index].sensor[current_sensor_index].activation = current_value
         signal_array_list[current_sensor_array_index][current_sensor_index] = current_value
         self.sensor_array_box.setCurrentIndex(current_sensor_array_index)
         self.show_sensors()
@@ -378,11 +381,18 @@ class SensorsWindow(QtWidgets.QWidget):
     def return_sensor(self, type, where_to):
         to_show_list = []
         if type == 'layer':
-            for sensor_layer in cognit.sensor:
-                to_show_list = to_show_list + [sensor_layer.comment]
+            for sensor_layer in cognit.sensor_layer:
+                if where_to == 'to_1D':
+                    if sensor_layer.check_1D_2D == '1D':
+                        to_show_list = to_show_list + [sensor_layer.comment]
+                elif where_to == 'to_2D':
+                    if sensor_layer.check_1D_2D == '2D':
+                        to_show_list = to_show_list + [sensor_layer.comment]
+
             if where_to == 'to_show':
                 self.sensor_array_box.clear()
                 self.sensor_array_box.addItems(to_show_list)
+
             elif where_to == 'to_1D' :
                 self.sensor_1d_box.clear()
                 self.sensor_1d_box.addItems(to_show_list)
@@ -390,10 +400,12 @@ class SensorsWindow(QtWidgets.QWidget):
         if type == 'index':
             current_index = 0
             if where_to == 'to_1D':
-                current_index = self.sensor_1d_box.currentIndex()
-                self.sensor_1d_box_index.clear()
-            for i in range(cognit.sensor[current_index].x_size):
-                self.sensor_1d_box_index.addItems([str(i)])
+                comment = self.sensor_1d_box.currentText()
+                for sensor_layer in cognit.sensor_layer:
+                    if sensor_layer.comment == comment:
+                        for i in range(cognit.sensor_layer[current_index].x_size):
+                            self.sensor_1d_box_index.addItems([str(i)])
+
 class UiMainWindow(object):    ## Main window, partially QtDesigner generated ##
     def setupUi(self, MainWindow):
         self.reward_value = 0.0
@@ -539,10 +551,10 @@ class UiMainWindow(object):    ## Main window, partially QtDesigner generated ##
         plt.xlim([0, self.x_limit])
         plt.ylim([0, self.y_limit])
 
-        sensor_array_list_size = len(cognit.sensor)
-        sensor_window_y_size = 15
+        sensor_array_list_size = len(cognit.sensor_layer)
+        sensor_window_y_size = 30
         sensor_window_x_size = self.x_limit / sensor_array_list_size
-        columns_window_y_size = 90
+        columns_window_y_size = self.y_limit - sensor_window_y_size
 
         ## Horizontal border for sensors ##
         draw_line = plt.Line2D((0, self.x_limit),
@@ -569,20 +581,21 @@ class UiMainWindow(object):    ## Main window, partially QtDesigner generated ##
                                    color='blue')
             axis.add_artist(draw_line)
 
-            layer_x_size = cognit.sensor[i].x_size
-            if cognit.sensor[i].y_size == None:
+            layer_x_size = cognit.sensor_layer[i].x_size
+            if cognit.sensor_layer[i].y_size == None:
                 layer_y_size = 1
-            else: layer_y_size = np.array(cognit.sensor_array_list[i]).shape[1]
+            else: layer_y_size = cognit.sensor_layer[i].y_size
             radius = min((sensor_window_y_size /  layer_y_size / 4), (sensor_window_x_size / layer_x_size / 4))
             x_step = sensor_window_x_size / layer_x_size
-            y_step = sensor_window_y_size
+            y_step = sensor_window_y_size / layer_y_size
             for x_index in range(layer_x_size):
                 for y_index in range(layer_y_size):
 
                     x_position = x_step * (0.5 + x_index) + i * sensor_window_x_size
                     y_position = y_step * (0.5 + y_index)
-                    if layer_y_size == 1: current_sensor = cognit.sensor[i].sensor[x_index]
-                    else: current_sensor = cognit.sensorlist[i].sensor[x_index][y_index]
+                    if layer_y_size == 1: current_sensor = cognit.sensor_layer[i].sensor[x_index]
+                    else: current_sensor = cognit.sensor_layer[i].sensor[y_index][x_index]
+
                     if current_sensor.activation != 0:
                         ## Sensor activation ##
                         draw_circle = plt.Circle((x_position, y_position),
@@ -599,39 +612,42 @@ class UiMainWindow(object):    ## Main window, partially QtDesigner generated ##
 
         ## Drawing columns ##
         for i in range(len(cognit.layer)):
-            layer_x_size = len(cognit.layer[i].column)
-            layers_number = len(cognit.layer)
-            rec_size = min((columns_window_y_size / layers_number / 4), (self.x_limit / layer_x_size / 4))
+            layer_x_size = cognit.layer[i].x_size
+            layer_y_size = cognit.layer[i].y_size
+            rec_size = columns_window_y_size / len(cognit.layer)
+            radius = min((self.x_limit / layer_x_size / 4), (rec_size / layer_y_size / 4))
             x_step = self.x_limit / layer_x_size
-            for x_index in range(layer_x_size):
-                x_position = x_step * (0.5 + x_index)
-                y_position = sensor_window_y_size + ((columns_window_y_size - sensor_window_y_size) / layers_number) * (i + 0.5)
+            y_step = rec_size / (layer_y_size + 1)
 
+            for current_column in cognit.layer[i].column:
+                x_position = x_step * (0.5 + current_column.position[1])
+                y_position = sensor_window_y_size + rec_size * i + y_step * (current_column.position[0] + 1)
+            #
                 ## Activation of columns ##
                 activation = 0.0
-                for neuron in cognit.layer[i].column[x_index].interneuron:
+                for neuron in current_column.interneuron:
                     activation = max(activation, neuron.activation)
-                draw_rectangle = plt.Rectangle(((x_position - rec_size / 2), (y_position - rec_size / 2)),
-                                               height=rec_size * activation,
-                                               width=rec_size * activation,
+                draw_rectangle = plt.Rectangle(((x_position - radius / 2), (y_position - radius / 2)),
+                                               height=radius * activation,
+                                               width=radius * activation,
                                                fill=True,
                                                color='red')
                 axis.add_artist(draw_rectangle)
 
                 ## Border of columns ##
-                draw_rectangle = plt.Rectangle((x_position - rec_size / 2, y_position - rec_size / 2),
-                                               height=rec_size,
-                                               width=rec_size,
+                draw_rectangle = plt.Rectangle((x_position - radius / 2, y_position - radius / 2),
+                                               height=radius,
+                                               width=radius,
                                                fill=False,
                                                color='black')
                 axis.add_artist(draw_rectangle)
 
                 if column != None:
-                    if cognit.layer[i].column[x_index] == column:
+                    if current_column == column:
                         ## Outline activated column ##
-                        draw_rectangle = plt.Rectangle(((x_position - rec_size / 2) - 1, (y_position - rec_size / 2) - 1),
-                                                       height=rec_size + 2,
-                                                       width=rec_size + 2,
+                        draw_rectangle = plt.Rectangle(((x_position - radius / 2) - 1, (y_position - radius / 2) - 1),
+                                                       height=radius + 2,
+                                                       width=radius + 2,
                                                        linewidth = 2.0,
                                                        fill=False,
                                                        color='blue')
@@ -641,11 +657,11 @@ class UiMainWindow(object):    ## Main window, partially QtDesigner generated ##
                     for neuron in column.output_neuron:
                         if len(neuron.output_connections) != 0:
                             for connection in neuron.output_connections:
-                                if connection.output.column == cognit.layer[i].column[x_index]:
+                                if connection.output.column == current_column:
                                     draw_rectangle = plt.Rectangle(
-                                        ((x_position - rec_size / 2) - 1, (y_position - rec_size / 2) - 1),
-                                        height=rec_size + 2,
-                                        width=rec_size + 2,
+                                        ((x_position - radius / 2) - 1, (y_position - radius / 2) - 1),
+                                        height=radius + 2,
+                                        width=radius + 2,
                                         linewidth=2.0,
                                         linestyle = '--',
                                         fill=False,
@@ -662,7 +678,7 @@ if __name__ == "__main__":
     with open('current_cognit.pickle', 'rb') as f:
         cognit = pickle.load(f)
     # cognit.column[3].interneuron[0].threshold = 0.5
-    signal_array_list = [[0.0, 0.5, 0.0, 0.0, 0.0], [0.5]]
+    signal_array_list = [[[0.0, 0.0, 0.0, 0.0, 0.0],[0.0, 0.0, 0.0, 0.0, 0.0],[0.0, 0.0, 0.5, 0.0, 0.0],[0.0, 0.0, 0.0, 0.0, 0.0],[0.0, 0.0, 0.0, 0.0, 0.0]], [0.5]]
     import sys
 
     app = QtWidgets.QApplication(sys.argv)

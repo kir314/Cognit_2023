@@ -110,3 +110,41 @@ def disconnect(entity1, entity2):
                 in_index = entity2.input_connections.index(connection)
                 del entity2.input_connections[in_index]
 
+
+def connect_inter_to_output(layer):
+    for column in layer.column:
+        for interneuron in column.interneuron:
+            for output_neuron in column.output_neuron:
+                connect(interneuron, output_neuron)
+
+def inhibit_in_radius(layer, distance_threshold):
+    for column in layer.column:
+        for another_column in layer.column:
+            if column != another_column:
+                distance = (column.position[0]-another_column.position[0]) ** 2 + (column.position[1]-another_column.position[1]) ** 2
+                if distance > distance_threshold:
+                    connect(column.interneuron[0], another_column.inhibition_neuron)
+                    connect(another_column.interneuron[0], column.inhibition_neuron)
+
+def connect_by_position(layer, position1, position2, type):
+    column1 = None
+    column2 = None
+    for column in layer.column:
+        if column.position == position1:
+            column1 = column
+        elif column.position == position2:
+            column2 = column
+
+        if column1 != None and column2 != None:
+            if type == 'inh':
+                connect(column1.interneuron[0], column2.inhibition_neuron)
+            elif type == 'ord':
+                connect(column1.output_neuron[0], column2.interneuron[0])
+
+def connect_sensors_to_columns(sensor_layer, column_layer, type):
+    if type == 'individual':
+        for sensor_line in sensor_layer.sensor:
+            for sensor in sensor_line:
+                for column in column_layer.column:
+                    if sensor.position == column.position:
+                        connect(sensor, column.interneuron[0])
