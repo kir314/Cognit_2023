@@ -279,132 +279,135 @@ class SensorsWindow(QtWidgets.QWidget):
         self.layout.setSpacing(20)
         self.setFixedWidth(1500)
         self.setFixedHeight(300)
+        self.sensor_label = QtWidgets.QLabel()
+        self.sensor_label.setText('Sensor')
+        self.layout.addWidget(self.sensor_label, 0, 0, QtCore.Qt.AlignCenter)
 
-        ## Labels ##
-        self.sensor_array_label = QtWidgets.QLabel()
-        self.sensor_array_label.setText('Sensor array')
-        self.layout.addWidget(self.sensor_array_label, 0, 0, QtCore.Qt.AlignCenter)
-
-        self.sensor_1D_label = QtWidgets.QLabel()
-        self.sensor_1D_label.setText('1D')
-        self.layout.addWidget(self.sensor_1D_label, 1, 0, QtCore.Qt.AlignCenter)
-
-        self.sensor_2D_label = QtWidgets.QLabel()
-        self.sensor_2D_label.setText('2D')
-        self.layout.addWidget(self.sensor_2D_label, 1, 1, QtCore.Qt.AlignCenter)
-
-        ## Show button ##
+        ## Show array button ##
         self.show_button = QtWidgets.QPushButton(self.centralwidget)
         self.show_button.setGeometry(QtCore.QRect(80, 20, 161, 61))
-        self.show_button.setText("Show")
-        self.show_button.setObjectName("Show")
-        self.layout.addWidget(self.show_button,0,2)
+        self.show_button.setText("Show array")
+        self.show_button.setObjectName("Show attay")
+        self.layout.addWidget(self.show_button, 0, 1)
         self.show_button.clicked.connect(self.show_sensors)
 
+        ## Show value button ##
+        self.show_value_button = QtWidgets.QPushButton(self.centralwidget)
+        self.show_value_button.setGeometry(QtCore.QRect(80, 20, 161, 61))
+        self.show_value_button.setText("Show value")
+        self.show_value_button.setObjectName("Show value")
+        self.layout.addWidget(self.show_value_button, 3, 1)
+        self.show_value_button.clicked.connect(self.show_value)
+    #
         ## Text Area for sensor activations ##
         self.show_area = QtWidgets.QPlainTextEdit(self.centralwidget)
         self.show_area.setGeometry(QtCore.QRect(820, 10, 750, 900))
         # self.show_area.resize(700,700)
         self.layout.addWidget(self.show_area,0,3,6,1)
-
+    #
         ## Sensor array combo box ##
         self.sensor_array_box = QtWidgets.QComboBox(self.centralwidget)
-        self.layout.addWidget(self.sensor_array_box, 0, 1)
-        self.return_sensor('layer','to_show')
+        self.layout.addWidget(self.sensor_array_box, 1, 0)
+        self.return_sensor('layer')
+        self.sensor_array_box.currentIndexChanged.connect(lambda state, type='layer': self.box_changed(type))
+
+        ## Sensor position combo box ##
+        self.sensor_position_x_box = QtWidgets.QComboBox(self.centralwidget)
+        self.layout.addWidget(self.sensor_position_x_box, 2, 0)
+        self.return_sensor('position_x')
         # self.sensor_array_box.currentIndexChanged.connect(lambda state, level=0: self.box_changed(level, '1D'))
+    #
+        ## Sensor position combo box ##
+        self.sensor_position_y_box = QtWidgets.QComboBox(self.centralwidget)
+        self.layout.addWidget(self.sensor_position_y_box, 3, 0)
+        self.return_sensor('position_y')
 
-        ## 1D sensor pick combo box ##
-        self.sensor_1d_box = QtWidgets.QComboBox(self.centralwidget)
-        self.layout.addWidget(self.sensor_1d_box, 2, 0)
-        self.return_sensor('layer','to_1D')
-        self.sensor_1d_box.currentIndexChanged.connect(lambda state, level = 0: self.box_1d_changed(level))
-        # self.output_columns_box.currentIndexChanged.connect(lambda state, level=1: self.box_changed(level, 'output'))
-
-        self.sensor_1d_box_index = QtWidgets.QComboBox(self.centralwidget)
-        self.layout.addWidget(self.sensor_1d_box_index, 3, 0)
-        self.return_sensor('index', 'to_1D')
-        self.sensor_1d_box_index.currentIndexChanged.connect(lambda state, level = 1: self.box_1d_changed(level))
-
-        self.sensor_1d_value = QtWidgets.QLineEdit(self.centralwidget)
-        self.layout.addWidget(self.sensor_1d_value,4,0)
+        ## Sensor value box ##
+        self.sensor_value = QtWidgets.QLineEdit(self.centralwidget)
+        self.layout.addWidget(self.sensor_value, 1, 1)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Preferred)
-        self.sensor_1d_value.setSizePolicy(sizePolicy)
-        self.return_sensor_activation('1D')
-        self.sensor_1d_value.returnPressed.connect(self.sensor_1d_changed)
+        self.sensor_value.setSizePolicy(sizePolicy)
 
+        ## Sensor change value button ##
+        self.change_button = QtWidgets.QPushButton(self.centralwidget)
+        self.change_button.setGeometry(QtCore.QRect(80, 20, 161, 61))
+        self.change_button.setText("Change")
+        self.layout.addWidget(self.change_button, 2, 1)
+        self.change_button.clicked.connect(self.change_value)
         self.setLayout(self.layout)
+    def change_value(self):
+        new_value = float(self.sensor_value.text())
+        array_index = self.sensor_array_box.currentIndex()
+        if cognit.sensor_layer[array_index].y_size == 1:
+            y_index = 0
+            x_index = self.sensor_position_y_box.currentIndex()
+        else:
+            y_index = self.sensor_position_y_box.currentIndex()
+            x_index = self.sensor_position_x_box.currentIndex()
+        signal_array_list[array_index][y_index][x_index] = new_value
+    def show_value(self):
+        self.sensor_value.clear()
+        array_index = self.sensor_array_box.currentIndex()
+        if cognit.sensor_layer[array_index].y_size == 1:
+            y_index = 0
+            x_index = self.sensor_position_y_box.currentIndex()
+        else:
+            y_index = self.sensor_position_y_box.currentIndex()
+            x_index = self.sensor_position_x_box.currentIndex()
 
-    def box_1d_changed(self, level):
-        if level == 0:
-            self.return_sensor('index', 'to_1D')
-        current_sensor_array_index = self.sensor_1d_box.currentIndex()
-        current_sensor_index = self.sensor_1d_box_index.currentIndex()
-        current_value = signal_array_list[current_sensor_array_index][current_sensor_index]
-        self.sensor_1d_value.setText(str(current_value))
-
-
-    def sensor_1d_changed(self):
-        # current_sensor_array_index = self.sensor_1d_box.currentIndex()
-        current_sensor_array_text = self.sensor_1d_box.currentText()
-        current_sensor_index = self.sensor_1d_box_index.currentIndex()
-        current_value = float(self.sensor_1d_value.text())
-        for sensor_layer in cognit.sensor_layer:
-            if sensor_layer.comment == current_sensor_array_text:
-                cognit.sensor[current_sensor_array_index].sensor[current_sensor_index].activation = current_value
-        signal_array_list[current_sensor_array_index][current_sensor_index] = current_value
-        self.sensor_array_box.setCurrentIndex(current_sensor_array_index)
-        self.show_sensors()
-    def return_sensor_activation(self, type):
-        if type == '1D':
-            layer_index = self.sensor_1d_box.currentIndex()
-            index = self.sensor_1d_box_index.currentIndex()
-            value = signal_array_list[layer_index][index]
-            self.sensor_1d_value.setText(str(value))
-    def box_changed(self, level, where):
-        if where == '1D':
-            if level == 0:
-                self.return_sensor('index','to_1D')
+        self.sensor_value.setText(str(signal_array_list[array_index][y_index][x_index]))
     def show_sensors(self):
         self.show_area.clear()
-        sensor_index = self.sensor_array_box.currentIndex()
-        sensor_layer = signal_array_list[sensor_index]
+        sensor_array = signal_array_list[self.sensor_array_box.currentIndex()]
+        y_size = len(sensor_array)
+        x_size = len(sensor_array[0])
         line = ''
-        size = len(sensor_layer)
-        for i in range(size):
-            line = line + '  ' + str(i) + '\t'
-        line = line + '\n\n'
-        for i in range(size):
-            line = line + "{:.2f}".format(sensor_layer[i]) + '\t'
+
+        for j in range(y_size):
+            for i in range(x_size):
+                line = line + "{:.2f}".format(sensor_array[j][i]) + '\t'
+
+            line = line + '\n\n'
 
         self.show_area.insertPlainText(line)
 
-    def return_sensor(self, type, where_to):
+    def return_sensor(self, type):
         to_show_list = []
         if type == 'layer':
             for sensor_layer in cognit.sensor_layer:
-                if where_to == 'to_1D':
-                    if sensor_layer.check_1D_2D == '1D':
-                        to_show_list = to_show_list + [sensor_layer.comment]
-                elif where_to == 'to_2D':
-                    if sensor_layer.check_1D_2D == '2D':
-                        to_show_list = to_show_list + [sensor_layer.comment]
+                to_show_list = to_show_list + [sensor_layer.comment]
 
-            if where_to == 'to_show':
-                self.sensor_array_box.clear()
-                self.sensor_array_box.addItems(to_show_list)
+            self.sensor_array_box.clear()
+            self.sensor_array_box.addItems(to_show_list)
 
-            elif where_to == 'to_1D' :
-                self.sensor_1d_box.clear()
-                self.sensor_1d_box.addItems(to_show_list)
+        if type == 'position_x':
+            to_show_list = []
+            array_index = self.sensor_array_box.currentIndex()
+            if cognit.sensor_layer[array_index].y_size == 1:
+                for i in range(cognit.sensor_layer[array_index].x_size):
+                    to_show_list = to_show_list + [str(i)]
+            else:
+                for i in range(cognit.sensor_layer[array_index].y_size):
+                    to_show_list = to_show_list + [str(i)]
 
-        if type == 'index':
-            current_index = 0
-            if where_to == 'to_1D':
-                comment = self.sensor_1d_box.currentText()
-                for sensor_layer in cognit.sensor_layer:
-                    if sensor_layer.comment == comment:
-                        for i in range(cognit.sensor_layer[current_index].x_size):
-                            self.sensor_1d_box_index.addItems([str(i)])
+            self.sensor_position_x_box.clear()
+            self.sensor_position_x_box.addItems(to_show_list)
+
+        if type == 'position_y':
+            to_show_list = []
+            array_index = self.sensor_array_box.currentIndex()
+            if cognit.sensor_layer[array_index].y_size == 1:
+                to_show_list = ['']
+            else:
+                for i in range(cognit.sensor_layer[array_index].x_size):
+                    to_show_list = to_show_list + [str(i)]
+
+            self.sensor_position_y_box.clear()
+            self.sensor_position_y_box.addItems(to_show_list)
+    def box_changed(self, type):
+        if type == 'layer':
+            self.return_sensor('position_x')
+            self.return_sensor('position_y')
 
 class UiMainWindow(object):    ## Main window, partially QtDesigner generated ##
     def setupUi(self, MainWindow):
@@ -594,15 +597,21 @@ class UiMainWindow(object):    ## Main window, partially QtDesigner generated ##
                     x_position = x_step * (0.5 + x_index) + i * sensor_window_x_size
                     y_position = y_step * (0.5 + y_index)
                     if layer_y_size == 1: current_sensor = cognit.sensor_layer[i].sensor[x_index]
-                    else: current_sensor = cognit.sensor_layer[i].sensor[y_index][x_index]
+                    else:
+                        for sensor in cognit.sensor_layer[i].sensor:
+                            if sensor.position == [y_index, x_index]:
+                                current_sensor = sensor
+                                break
+                            else: current_sensor = None
 
-                    if current_sensor.activation != 0:
-                        ## Sensor activation ##
-                        draw_circle = plt.Circle((x_position, y_position),
-                                                 radius * current_sensor.activation,
-                                                 fill=True,
-                                                 color='red')
-                        axis.add_artist(draw_circle)
+                    if current_sensor != None:
+                        if current_sensor.activation != 0:
+                            ## Sensor activation ##
+                            draw_circle = plt.Circle((x_position, y_position),
+                                                     radius * current_sensor.activation,
+                                                     fill=True,
+                                                     color='red')
+                            axis.add_artist(draw_circle)
                     ## Sensor border ##
                     draw_circle = plt.Circle((x_position, y_position),
                                               radius,
@@ -678,7 +687,7 @@ if __name__ == "__main__":
     with open('current_cognit.pickle', 'rb') as f:
         cognit = pickle.load(f)
     # cognit.column[3].interneuron[0].threshold = 0.5
-    signal_array_list = [[[0.0, 0.0, 0.0, 0.0, 0.0],[0.0, 0.0, 0.0, 0.0, 0.0],[0.0, 0.0, 0.5, 0.0, 0.0],[0.0, 0.0, 0.0, 0.0, 0.0],[0.0, 0.0, 0.0, 0.0, 0.0]], [0.5]]
+    signal_array_list = [[[0.0, 0.0, 0.0, 0.0, 0.0],[0.0, 0.0, 0.0, 0.0, 0.0],[0.0, 0.0, 0.5, 0.0, 0.0],[0.0, 0.0, 0.0, 0.0, 0.0],[0.0, 0.0, 0.0, 0.0, 0.0]], [[0.5]]]
     import sys
 
     app = QtWidgets.QApplication(sys.argv)

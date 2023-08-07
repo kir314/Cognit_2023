@@ -143,8 +143,7 @@ def connect_by_position(layer, position1, position2, type):
 
 def connect_sensors_to_columns(sensor_layer, column_layer, type):
     if type == 'individual':
-        for sensor_line in sensor_layer.sensor:
-            for sensor in sensor_line:
-                for column in column_layer.column:
-                    if sensor.position == column.position:
-                        connect(sensor, column.interneuron[0])
+        for sensor in sensor_layer.sensor:
+            for column in column_layer.column:
+                if sensor.position == column.position:
+                    connect(sensor, column.interneuron[0])

@@ -8,42 +8,56 @@ class Cognit():
         self.layer = []
         self.sensor_layer = []
 
-    def feed_sensors(self,signal_array_list):
+    def feed_sensors(self, signal_array_list):
         self.activation_list = []
 
         ## Feed sensors and add activated columns to column activation list ##
-        if len(signal_array_list) == len(self.sensor_layer):
-            for i in range(len(signal_array_list)):
-                if self.sensor_layer[i].check_1D_2D == '1D':
-                    if len(signal_array_list[i]) == len(self.sensor_layer[i].sensor):
-                        for j in range(len(signal_array_list[i])):
-                            if signal_array_list[i][j] != 0:
-                                self.sensor_layer[i].sensor[j].activation = signal_array_list[i][j]
-                                if len(self.sensor_layer[i].sensor[j].output_connections) != 0:
-                                    for connection in self.sensor_layer[i].sensor[j].output_connections:
-                                        if connection.output.column not in self.activation_list:
-                                            self.activation_list = self.activation_list + [
-                                                connection.output.column]
-                                        connection.output.stored_activation = connection.output.stored_activation + [signal_array_list[i][j]]
 
-                elif self.sensor_layer[i].check_1D_2D == '2D':
-                    if (len(signal_array_list[i]) == len(self.sensor_layer[i].sensor)) and (len(signal_array_list[i][0]) == len(self.sensor_layer[i].sensor[0])):
-                        for j in range(len(signal_array_list[i])):
-                            for k in range(len(signal_array_list[i][0])):
-                                if signal_array_list[i][j][k] != 0:
-                                    self.sensor_layer[i].sensor[j][k].activation = signal_array_list[i][j][k]
-                                    if len(self.sensor_layer[i].sensor[j][k].output_connections) != 0:
-                                        for connection in self.sensor_layer[i].sensor[j][k].output_connections:
-                                            if connection.output.column not in self.activation_list:
-                                                self.activation_list = self.activation_list + [
-                                                    connection.output.column]
-                                            connection.output.stored_activation = connection.output.stored_activation + [
-                                                signal_array_list[i][j][k]]
+        for i in range(len(signal_array_list)):
+            signal_array = signal_array_list[i]
+            for sensor in self.sensor_layer[i].sensor:
+                sensor.activation = signal_array[sensor.position[0]][sensor.position[1]]
 
-                else:
-                    print("Signal and sensor sizes don't match")
-        else:
-            print("Signal and sensor arrays don't match")
+                if len(sensor.output_connections) != 0:
+                    for connection in sensor.output_connections:
+                        if connection.output.column not in self.activation_list:
+                            self.activation_list = self.activation_list + [
+                                connection.output.column]
+                        connection.output.stored_activation = connection.output.stored_activation + [
+                            sensor.activation]
+        #
+        # if len(signal_array_list) == len(self.sensor_layer):
+        #     for i in range(len(signal_array_list)):
+        #         if self.sensor_layer[i].check_1D_2D == '1D':
+        #             if len(signal_array_list[i]) == len(self.sensor_layer[i].sensor):
+        #                 for j in range(len(signal_array_list[i])):
+        #                     if signal_array_list[i][j] != 0:
+        #                         self.sensor_layer[i].sensor[j].activation = signal_array_list[i][j]
+        #                         if len(self.sensor_layer[i].sensor[j].output_connections) != 0:
+        #                             for connection in self.sensor_layer[i].sensor[j].output_connections:
+        #                                 if connection.output.column not in self.activation_list:
+        #                                     self.activation_list = self.activation_list + [
+        #                                         connection.output.column]
+        #                                 connection.output.stored_activation = connection.output.stored_activation + [signal_array_list[i][j]]
+        #
+        #         elif self.sensor_layer[i].check_1D_2D == '2D':
+        #             if (len(signal_array_list[i]) == len(self.sensor_layer[i].sensor)) and (len(signal_array_list[i][0]) == len(self.sensor_layer[i].sensor[0])):
+        #                 for j in range(len(signal_array_list[i])):
+        #                     for k in range(len(signal_array_list[i][0])):
+        #                         if signal_array_list[i][j][k] != 0:
+        #                             self.sensor_layer[i].sensor[j][k].activation = signal_array_list[i][j][k]
+        #                             if len(self.sensor_layer[i].sensor[j][k].output_connections) != 0:
+        #                                 for connection in self.sensor_layer[i].sensor[j][k].output_connections:
+        #                                     if connection.output.column not in self.activation_list:
+        #                                         self.activation_list = self.activation_list + [
+        #                                             connection.output.column]
+        #                                     connection.output.stored_activation = connection.output.stored_activation + [
+        #                                         signal_array_list[i][j][k]]
+        #
+        #         else:
+        #             print("Signal and sensor sizes don't match")
+        # else:
+        #     print("Signal and sensor arrays don't match")
 
     ## Feed forwarding sensors and columns in cognit ##
     def feed_forward(self, signal_array_list):
@@ -61,8 +75,8 @@ class Cognit():
         for column in layer.column:
             self.column = self.column + [column]
 
-    def create_sensor_layer(self, comment, check_1D_2D, x_size, y_size = None):
-        sensor_layer = Sensor_Layer(cognit = self, comment = comment, check_1D_2D=check_1D_2D, x_size=x_size, y_size=y_size)
+    def create_sensor_layer(self, comment, x_size, y_size = 1):
+        sensor_layer = Sensor_Layer(cognit = self, comment = comment, x_size=x_size, y_size=y_size)
         self.sensor_layer = self.sensor_layer + [sensor_layer]
 
     ## Zeroing activations after feed forward ##
@@ -71,29 +85,35 @@ class Cognit():
             column.clean_up()
 
 class Sensor_Layer():
-    def __init__(self, cognit, comment, check_1D_2D, x_size, y_size = 1):
+    def __init__(self, cognit, comment, x_size, y_size = 1):
         self.sensor = []
         self.cognit = cognit
         self.comment = comment
-        self.check_1D_2D = check_1D_2D
+        # self.check_1D_2D = check_1D_2D
         self.x_size = x_size
         self.y_size = y_size
 
-
-        if check_1D_2D == '1D':
-            for i in range(x_size):
-                sensor = Sensor(cognit = cognit, comment = comment + '_' + str(i))
-                sensor.position = [i,1]
+        for i in range(y_size):
+            for j in range(x_size):
+                if y_size == 1: sensor_comment = comment + '_' + str(j)
+                else: sensor_comment = comment + '_' + str(i) + '_' + str(j)
+                sensor = Sensor(cognit=cognit, comment=sensor_comment)
+                sensor.position = [i,j]
                 self.sensor = self.sensor + [sensor]
-
-        if check_1D_2D == '2D':
-            for i in range(y_size):
-                sensor_line = []
-                for j in range(x_size):
-                    sensor = Sensor(cognit = cognit, comment = comment)
-                    sensor.position = [i,j]
-                    sensor_line = sensor_line + [sensor]
-                self.sensor = self.sensor + [sensor_line]
+        # if check_1D_2D == '1D':
+        #     for i in range(x_size):
+        #         sensor = Sensor(cognit = cognit, comment = comment + '_' + str(i))
+        #         sensor.position = [i,1]
+        #         self.sensor = self.sensor + [sensor]
+        #
+        # if check_1D_2D == '2D':
+        #     for i in range(y_size):
+        #         sensor_line = []
+        #         for j in range(x_size):
+        #             sensor = Sensor(cognit = cognit, comment = comment)
+        #             sensor.position = [i,j]
+        #             sensor_line = sensor_line + [sensor]
+        #         self.sensor = self.sensor + [sensor_line]
 
 class Layer():
     def __init__(self, cognit, comment, n_columns, n_interneuron, n_dendrites, n_outputs, y_size = 1):
