@@ -10,7 +10,7 @@ from sensors import Sensor_Pattern
 from learning import learn
 from PyQt5 import QtCore, QtWidgets
 import time
-from utility import connect, disconnect
+from utility import connect, disconnect, change_sensors
 
 class ConnectionsWindow(QtWidgets.QWidget):
     def __init__(self):
@@ -468,7 +468,15 @@ class UiMainWindow(object):    ## Main window, partially QtDesigner generated ##
         self.check_animate_title.setText('Animate')
         self.check_animate = QtWidgets.QCheckBox(self.centralwidget)
         self.check_animate.setGeometry(100, 105, 20, 20)
-        self.check_animate.setChecked(True)
+        self.check_animate.setChecked(False)
+
+        ## Box to allow movement ##
+        self.check_move_title = QtWidgets.QLabel(self.centralwidget)
+        self.check_move_title.setGeometry(480,73,120,80)
+        self.check_move_title.setText('Allow movement')
+        self.check_move = QtWidgets.QCheckBox(self.centralwidget)
+        self.check_move.setGeometry(450, 105, 20, 20)
+        self.check_move.setChecked(False)
 
         ## Button for connections ##
         self.connections_button = QtWidgets.QPushButton(self.centralwidget)
@@ -528,15 +536,16 @@ class UiMainWindow(object):    ## Main window, partially QtDesigner generated ##
         else:
             cognit.clean_up()
             cognit.feed_sensors(signal_array_list)
-            if len(cognit.activation_list) != 0:
-                i = 0
-                while i < len(cognit.activation_list):
-                    column = cognit.activation_list[i]
-                    column.feed_forward()
-                    i += 1
+            cognit.feed_forward()
+
+            if self.check_move.isChecked():
+                self.move()
+
 
             self.plot(column = None)
             time.sleep(0.2)
+
+            signal_array_list[2][0][0] +=  default.grow_impatience
 
     def many_runs(self):
         number_of_times = int(self.many_runs_lineEdit.text())
@@ -544,6 +553,20 @@ class UiMainWindow(object):    ## Main window, partially QtDesigner generated ##
             self.single_run()
             if self.stop_button.isChecked(): break
         self.stop_button.setChecked(False)
+
+    def move(self):
+        for interneuron in cognit.layer[1].column[0].interneuron:
+            if interneuron.activation != 0:
+                signal_array_list[1][0][0] = 0.0
+                if interneuron.comment == 'up':
+                    signal_array_list[0] = change_sensors(signal_array_list[0], 'labyrinth_position', 'up')
+                elif interneuron.comment == 'down':
+                    signal_array_list[0] = change_sensors(signal_array_list[0], 'labyrinth_position', 'down')
+                elif interneuron.comment == 'left':
+                    signal_array_list[0] = change_sensors(signal_array_list[0], 'labyrinth_position', 'left')
+                elif interneuron.comment == 'right':
+                    signal_array_list[0] = change_sensors(signal_array_list[0], 'labyrinth_position', 'right')
+                signal_array_list[2][0][0] = 0.0
 
     def plot(self, column = None):
         self.figure.clear()
@@ -687,7 +710,7 @@ if __name__ == "__main__":
     with open('current_cognit.pickle', 'rb') as f:
         cognit = pickle.load(f)
     # cognit.column[3].interneuron[0].threshold = 0.5
-    signal_array_list = [[[0.0, 0.0, 0.0, 0.0, 0.0],[0.0, 0.0, 0.0, 0.0, 0.0],[0.0, 0.0, 0.5, 0.0, 0.0],[0.0, 0.0, 0.0, 0.0, 0.0],[0.0, 0.0, 0.0, 0.0, 0.0]], [[0.5]]]
+    signal_array_list = [[[0.0, 0.0, 0.0, 0.0, 0.0],[0.0, 0.0, 0.0, 0.0, 0.0],[0.0, 0.0, 0.5, 0.0, 0.0],[0.0, 0.0, 0.0, 0.0, 0.0],[0.0, 0.0, 0.0, 0.0, 0.0]], [[0.0]], [[0.0]]]
     import sys
 
     app = QtWidgets.QApplication(sys.argv)

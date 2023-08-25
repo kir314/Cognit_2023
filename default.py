@@ -10,3 +10,4 @@ up_durability = 0.03
 down_durability = 0.06
 inhibitory_coefficient = 0.2
 suppression = 1.0
+grow_impatience = 0.05

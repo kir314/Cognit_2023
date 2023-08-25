@@ -126,20 +126,21 @@ def inhibit_in_radius(layer, distance_threshold):
                     connect(column.interneuron[0], another_column.inhibition_neuron)
                     connect(another_column.interneuron[0], column.inhibition_neuron)
 
-def connect_by_position(layer, position1, position2, type):
-    column1 = None
-    column2 = None
-    for column in layer.column:
-        if column.position == position1:
-            column1 = column
-        elif column.position == position2:
-            column2 = column
+def at_pos(layer, position):
+    item = None
+    if type(layer).__name__ == 'Layer':
+        for column in layer.column:
+            if column.position == position:
+                item = column
+                break
+    elif type(layer).__name__ == 'Sensor_Layer':
+        for sensor in layer.sensor:
+            if sensor.position == position:
+                item = sensor
+                break
 
-        if column1 != None and column2 != None:
-            if type == 'inh':
-                connect(column1.interneuron[0], column2.inhibition_neuron)
-            elif type == 'ord':
-                connect(column1.output_neuron[0], column2.interneuron[0])
+    if item!= None: return item
+
 
 def connect_sensors_to_columns(sensor_layer, column_layer, type):
     if type == 'individual':
@@ -147,3 +148,35 @@ def connect_sensors_to_columns(sensor_layer, column_layer, type):
             for column in column_layer.column:
                 if sensor.position == column.position:
                     connect(sensor, column.interneuron[0])
+
+def change_sensors(signal_array, type, direction):
+    if type == 'labyrinth_position':
+        ready_flag = False
+        for i in range(len(signal_array)):
+            for j in range(len(signal_array[0])):
+                if signal_array[i][j] != 0.0:
+                    if direction == 'left':
+                        if j > 0:
+                            signal_array[i][j-1] = signal_array[i][j]
+                            signal_array[i][j] = 0.0
+                            ready_flag = True
+                    elif direction == 'right':
+                        if j < len(signal_array[0]) - 1:
+                            signal_array[i][j+1] = signal_array[i][j]
+                            signal_array[i][j] = 0.0
+                            ready_flag = True
+                    elif direction == 'up':
+                        if i < len(signal_array) - 1 :
+                            signal_array[i+1][j] = signal_array[i][j]
+                            signal_array[i][j] = 0.0
+                            ready_flag = True
+                    elif direction == 'down':
+                        if i > 0:
+                            signal_array[i - 1][j] = signal_array[i][j]
+                            signal_array[i][j] = 0.0
+                            ready_flag = True
+
+                if ready_flag: break
+            if ready_flag: break
+
+    return signal_array

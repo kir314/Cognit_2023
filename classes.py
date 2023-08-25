@@ -25,42 +25,9 @@ class Cognit():
                                 connection.output.column]
                         connection.output.stored_activation = connection.output.stored_activation + [
                             sensor.activation]
-        #
-        # if len(signal_array_list) == len(self.sensor_layer):
-        #     for i in range(len(signal_array_list)):
-        #         if self.sensor_layer[i].check_1D_2D == '1D':
-        #             if len(signal_array_list[i]) == len(self.sensor_layer[i].sensor):
-        #                 for j in range(len(signal_array_list[i])):
-        #                     if signal_array_list[i][j] != 0:
-        #                         self.sensor_layer[i].sensor[j].activation = signal_array_list[i][j]
-        #                         if len(self.sensor_layer[i].sensor[j].output_connections) != 0:
-        #                             for connection in self.sensor_layer[i].sensor[j].output_connections:
-        #                                 if connection.output.column not in self.activation_list:
-        #                                     self.activation_list = self.activation_list + [
-        #                                         connection.output.column]
-        #                                 connection.output.stored_activation = connection.output.stored_activation + [signal_array_list[i][j]]
-        #
-        #         elif self.sensor_layer[i].check_1D_2D == '2D':
-        #             if (len(signal_array_list[i]) == len(self.sensor_layer[i].sensor)) and (len(signal_array_list[i][0]) == len(self.sensor_layer[i].sensor[0])):
-        #                 for j in range(len(signal_array_list[i])):
-        #                     for k in range(len(signal_array_list[i][0])):
-        #                         if signal_array_list[i][j][k] != 0:
-        #                             self.sensor_layer[i].sensor[j][k].activation = signal_array_list[i][j][k]
-        #                             if len(self.sensor_layer[i].sensor[j][k].output_connections) != 0:
-        #                                 for connection in self.sensor_layer[i].sensor[j][k].output_connections:
-        #                                     if connection.output.column not in self.activation_list:
-        #                                         self.activation_list = self.activation_list + [
-        #                                             connection.output.column]
-        #                                     connection.output.stored_activation = connection.output.stored_activation + [
-        #                                         signal_array_list[i][j][k]]
-        #
-        #         else:
-        #             print("Signal and sensor sizes don't match")
-        # else:
-        #     print("Signal and sensor arrays don't match")
 
     ## Feed forwarding sensors and columns in cognit ##
-    def feed_forward(self, signal_array_list):
+    def feed_forward(self):
         ## Feed forward columns in acctivation list ##
         if len(self.activation_list) != 0:
             i = 0
@@ -100,20 +67,6 @@ class Sensor_Layer():
                 sensor = Sensor(cognit=cognit, comment=sensor_comment)
                 sensor.position = [i,j]
                 self.sensor = self.sensor + [sensor]
-        # if check_1D_2D == '1D':
-        #     for i in range(x_size):
-        #         sensor = Sensor(cognit = cognit, comment = comment + '_' + str(i))
-        #         sensor.position = [i,1]
-        #         self.sensor = self.sensor + [sensor]
-        #
-        # if check_1D_2D == '2D':
-        #     for i in range(y_size):
-        #         sensor_line = []
-        #         for j in range(x_size):
-        #             sensor = Sensor(cognit = cognit, comment = comment)
-        #             sensor.position = [i,j]
-        #             sensor_line = sensor_line + [sensor]
-        #         self.sensor = self.sensor + [sensor_line]
 
 class Layer():
     def __init__(self, cognit, comment, n_columns, n_interneuron, n_dendrites, n_outputs, y_size = 1):
