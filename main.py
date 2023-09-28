@@ -157,9 +157,10 @@ class ConnectionsWindow(QtWidgets.QWidget):
                 self.input_connections_list.addItem(item.input_connections[i].input.comment)
 
         elif neuron_index == len(cognit.layer[layer_index].column[column_index].interneuron) + 1:
-            item = cognit.layer[layer_index].column[column_index].output_neuron
-            for i in range(len(item.output_connections)):
-                self.output_connections_list.addItem(item.output_connections[i].output.comment)
+            if len(cognit.layer[layer_index].column[column_index].output_neuron) != 0:
+                for item in cognit.layer[layer_index].column[column_index].output_neuron:
+                    for i in range(len(item.output_connections)):
+                        self.output_connections_list.addItem(item.output_connections[i].output.comment)
 
         else:
             if len(cognit.layer[layer_index].column[column_index].interneuron) != 0:
@@ -214,8 +215,9 @@ class ConnectionsWindow(QtWidgets.QWidget):
             if len(cognit.layer[layer_index].column[column_index].interneuron) != 0:
                 for neuron in cognit.layer[layer_index].column[column_index].interneuron:
                     to_show_list = to_show_list + [neuron.comment]
-            to_show_list = to_show_list + [
-                cognit.layer[layer_index].column[column_index].output_neuron.comment]
+            if len(cognit.layer[layer_index].column[column_index].output_neuron) != 0:
+                for neuron in cognit.layer[layer_index].column[column_index].output_neuron:
+                    to_show_list = to_show_list + [neuron.comment]
             if in_out == 'input':
                 self.input_neurons_box.clear()
                 self.input_neurons_box.addItems(to_show_list)
@@ -490,6 +492,41 @@ class UiMainWindow(object):    ## Main window, partially QtDesigner generated ##
         self.sensors_button.setText('Sensors')
         self.sensors_button.clicked.connect(self.show_sensors)
 
+        ## Log settings ##
+        self.log_mode_label = QtWidgets.QLabel(self.centralwidget)
+        self.log_mode_label.setGeometry(80,360, 100,30)
+        self.log_mode_label.setText('Log mode:')
+        self.log_mode = QtWidgets.QComboBox(self.centralwidget)
+        self.log_mode.setGeometry(80, 400, 160, 30)
+        self.log_mode.addItems(['Interneuron info'])
+        self.log_mode_button = QtWidgets.QPushButton(self.centralwidget)
+        self.log_mode_button.setGeometry(80, 440, 161, 61)
+        self.log_mode_button.setText('Set log mode')
+        self.log_mode_button.clicked.connect(self.log_mode_button_clicked)
+
+
+        ## Log select for interneurons ##
+        self.log_select_layer = QtWidgets.QComboBox(self.centralwidget)
+        self.log_select_layer.setGeometry(250,400,160,30)
+        self.log_select_layer.currentIndexChanged.connect(lambda state: self.log_layer_changed)
+        self.log_select_column = QtWidgets.QComboBox(self.centralwidget)
+        self.log_select_column.setGeometry(250,440,160,30)
+        self.log_select_neuron = QtWidgets.QComboBox(self.centralwidget)
+        self.log_select_neuron.setGeometry(250, 480, 160,30)
+        self.log_select_button = QtWidgets.QPushButton(self.centralwidget)
+        self.log_select_button.setGeometry(80,510, 161,61)
+        self.log_select_button.setText('Set neuron choice')
+
+        # if self.log_mode.currentText() == 'Interneuron info':
+
+
+        ## Log for events ##
+        # self.log_title = QtWidgets.QLabel(self.centralwidget)
+        # self.log_title.setGeometry(85,545,80,80)
+        # self.log_title.setText('Log')
+        self.log_window = QtWidgets.QPlainTextEdit(self.centralwidget)
+        self.log_window.setGeometry(QtCore.QRect(80, 600, 680, 300))
+
         ## Setting up menus
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 1600, 31))
@@ -506,6 +543,28 @@ class UiMainWindow(object):    ## Main window, partially QtDesigner generated ##
         self.layout = QtWidgets.QVBoxLayout(self.canvas_frame)
         self.layout.addWidget(self.canvas)
 
+    def log_layer_changed(self):
+
+    def log_mode_button_clicked(self):
+        if self.log_mode.currentText() == 'Interneuron info':
+            self.log_window.setPlaceholderText('Log mode: Solo interneuron information\n')
+            self.log_select_layer.clear()
+            self.log_select_column.clear()
+            self.log_select_neuron.clear()
+            to_show_list = []
+            for layer in cognit.layer:
+                to_show_list = to_show_list + [layer.comment]
+            self.log_select_layer.addItems(to_show_list)
+            to_show_list = []
+            for column in cognit.layer[0].column:
+                to_show_list = to_show_list + [column.comment]
+            self.log_select_column.addItems(to_show_list)
+            to_show_list = []
+            for neuron in cognit.layer[0].column[0].interneuron:
+                to_show_list = to_show_list + [neuron.comment]
+            self.log_select_neuron.addItems(to_show_list)
+
+
     def show_sensors(self):
         self.window = SensorsWindow()
         self.window.show()
@@ -517,6 +576,8 @@ class UiMainWindow(object):    ## Main window, partially QtDesigner generated ##
     def update_plot(self):
         self.plot()
 
+    def show_in_log(self, connection):
+        self.log_window.setPlaceholderText(connection.input.comment + 'to' + connection.output.comment)
     def single_run(self):
         if self.check_animate.isChecked():
             cognit.clean_up()
@@ -532,6 +593,9 @@ class UiMainWindow(object):    ## Main window, partially QtDesigner generated ##
                     time.sleep(0.2)
                     i += 1
             else: self.plot()
+            signal_array_list[2][0][0] += default.grow_impatience
+            if self.check_move.isChecked():
+                self.move()
 
         else:
             cognit.clean_up()
@@ -541,10 +605,13 @@ class UiMainWindow(object):    ## Main window, partially QtDesigner generated ##
             if self.check_move.isChecked():
                 self.move()
 
+            if len(cognit.new_connections) !=0:
+                for connection in cognit.new_connections:
+                    self.show_in_log(connection)
+
 
             self.plot(column = None)
             time.sleep(0.2)
-
             signal_array_list[2][0][0] +=  default.grow_impatience
 
     def many_runs(self):
@@ -710,7 +777,7 @@ if __name__ == "__main__":
     with open('current_cognit.pickle', 'rb') as f:
         cognit = pickle.load(f)
     # cognit.column[3].interneuron[0].threshold = 0.5
-    signal_array_list = [[[0.0, 0.0, 0.0, 0.0, 0.0],[0.0, 0.0, 0.0, 0.0, 0.0],[0.0, 0.0, 0.5, 0.0, 0.0],[0.0, 0.0, 0.0, 0.0, 0.0],[0.0, 0.0, 0.0, 0.0, 0.0]], [[0.0]], [[0.0]]]
+    signal_array_list = [[[0.0, 0.0, 0.0, 0.0, 0.0],[0.0, 0.0, 0.0, 0.0, 0.0],[0.0, 0.0, 1.0, 0.0, 0.0],[0.0, 0.0, 0.0, 0.0, 0.0],[0.0, 0.0, 0.0, 0.0, 0.0]], [[0.0]], [[0.0]]]
     import sys
 
     app = QtWidgets.QApplication(sys.argv)

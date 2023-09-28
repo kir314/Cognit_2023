@@ -7,6 +7,9 @@ class Cognit():
         self.column = []
         self.layer = []
         self.sensor_layer = []
+        self.new_connections = []
+        self.joy = 0.0
+        self.stress = 0.0
 
     def feed_sensors(self, signal_array_list):
         self.activation_list = []
@@ -25,6 +28,7 @@ class Cognit():
                                 connection.output.column]
                         connection.output.stored_activation = connection.output.stored_activation + [
                             sensor.activation]
+                        connection.strength += default.activation_strength_increase
 
     ## Feed forwarding sensors and columns in cognit ##
     def feed_forward(self):
@@ -34,6 +38,16 @@ class Cognit():
             while i < len(self.activation_list):
                 self.activation_list[i].feed_forward()
                 i += 1
+
+            ## Walking back the list (optional) ##
+            self.activation_list.reverse()
+            for column in self.activation_list:
+                column.feed_forward()
+
+            for column in self.activation_list:
+                column.learn()
+
+            self.clean_up()
 
     ## Adding layer of equal columns to cognit ##
     def create_column_layer(self, comment, n_columns, n_interneuron, n_dendrites, y_size, n_outputs):
@@ -48,8 +62,9 @@ class Cognit():
 
     ## Zeroing activations after feed forward ##
     def clean_up(self):
-        for column in self.activation_list:
-            column.clean_up()
+        # for column in self.activation_list:
+        #     column.clean_up()
+        self.new_connections = []
 
 class Sensor_Layer():
     def __init__(self, cognit, comment, x_size, y_size = 1):
@@ -77,17 +92,20 @@ class Layer():
         self.y_size = y_size
         for i in range(self.x_size):
             for j in range(y_size):
-                column = Column(cognit, layer = self, interneuron_number = n_interneuron, dendrites_number = n_dendrites, outputs_number = n_outputs, comment = comment + '_' + str(i))
-                column.position = [j,i]
+                column = Column(cognit, layer = self, interneuron_number = n_interneuron, dendrites_number = n_dendrites, outputs_number = n_outputs, comment = comment, position = [j,i])
                 self.column = self.column + [column]
 
-class Column():
-    def __init__(self, cognit, layer, interneuron_number, dendrites_number, comment, outputs_number):
+    def set_receptive_field_in_radius(self, radius):
+        for column in self.column:
+            column.add_to_receptive_field(method='in_radius', parameter = radius)
 
-        self.position = None
+class Column():
+    def __init__(self, cognit, layer, interneuron_number, dendrites_number, comment, outputs_number, position):
+
+        self.position = position
         self.cognit = cognit
         self.layer = layer
-        self.comment = comment
+        self.comment = comment + '_' + str(self.position)
         self.inhibition_neuron = Inhibition_Neuron(column = self)
         self.inhibition_neuron.comment = self.comment + '_block'
         self.output_neuron = []
@@ -104,8 +122,8 @@ class Column():
                 neuron.dendrites[j].column = self
             self.interneuron = self.interneuron + [neuron]
 
-        self.body_receptive_field = []
-        self.dendrite_receptive_field = []
+        self.column_receptive_field = []
+        self.sensor_receptive_field = []
 
     ## Feed forward inside the column (winner interneuron takes all based on activation function) ##
     def feed_forward(self):
@@ -164,10 +182,17 @@ class Column():
         ## Calculating activation of interneuron after inhibition ##
         for neuron in self.interneuron:
             if neuron.activation != 0:
+                if neuron.previous_activation >= default.memory_level:
+                    neuron.activation = default.memory_level
+
                 for connection in neuron.output_connections:
                     connection.output.stored_activation = connection.output.stored_activation + [neuron.activation + 0.01 * np.random.randn()]
+                    connection.strength += default.activation_strength_increase
                     if connection.output.column not in self.cognit.activation_list:
                         self.cognit.activation_list = self.cognit.activation_list + [connection.output.column]
+
+        for neuron in self.interneuron:
+            neuron.previous_activation = neuron.activation
 
         ## Calculating activation of output neuron ##
         for neuron in self.output_neuron:
@@ -175,18 +200,50 @@ class Column():
                 neuron.activation = max(neuron.stored_activation)
                 for connection in neuron.output_connections:
                     connection.output.stored_activation = connection.output.stored_activation + [neuron.activation + 0.01 * np.random.randn()]
+                    connection.strength += default.activation_strength_increase
                     if connection.output.column not in self.cognit.activation_list:
                         self.cognit.activation_list = self.cognit.activation_list + [connection.output.column]
                 else: neuron.activation = 0.0
             neuron.stored_activation = []
 
-    ## Cleaning up activations inside column after feed forward ##
+    def learn(self):
+        ## Learning connections output - interneuron ##
+        for interneuron in self.interneuron:
+            if interneuron.activation != 0:
+                if len(self.column_receptive_field) != 0:
+                    for column in self.column_receptive_field:
+                        for output_neuron in column.output_neuron:
+                            if output_neuron.activation != 0:
+
+                                connection_flag = False
+                                if len(interneuron.input_connections) != 0:
+                                    for connection  in interneuron.input_connections:
+                                        if connection.input == output_neuron: connection_flag = True
+
+                                if connection_flag == True:
+                                    neuron = Output_Neuron(column=column)
+                                    neuron.comment = column.comment + '_out' + str(len(column.output_neuron))
+                                    column.output_neuron = column.output_neuron + [neuron]
+                                    connect(neuron, interneuron)
+                                    self.cognit.new_connections = self.cognit.new_connections + [neuron.output_connections[-1]]
     def clean_up(self):
-        self.inhibition_neuron.activation = 0.0
-        for neuron in self.interneuron:
-            neuron.activation = 0.0
-        for neuron in self.output_neuron:
-            neuron.activation = 0.0
+        # ## Cleaning up activations inside column after feed forward ##
+        # self.inhibition_neuron.activation = 0.0
+        # for neuron in self.interneuron:
+        #     neuron.activation = 0.0
+        # for neuron in self.output_neuron:
+        #     neuron.activation = 0.0
+        print(1)
+
+    def add_to_receptive_field(self, method, parameter):
+        if method == 'in_radius':
+            for column in self.layer.column:
+                if column != self:
+                    position_delta = abs(column.position[0] - self.position[0]) + abs(column.position[1] - self.position[1])
+                    if position_delta <= parameter:
+                        self.column_receptive_field = self.column_receptive_field + [column]
+
+
 
 class Inhibition_Neuron:
     def __init__(self, column = None):
@@ -213,6 +270,7 @@ class Interneuron():
         self.threshold = default.activation_function_threshold
         self.neuron_threshold = default.neuron_threshold
         self.comment = ''
+        self.previous_activation = 0.0
 
         for i in range(dendrites_number):
             dendrite = Dendrite()
@@ -282,10 +340,22 @@ class Connection():
         self.output = n_output
         self.output_column = self.output.column
         self.weight = default.weight
-        self.durability = durability
+        self.strength = default.strength
         self.input_record = 0.0
         self.output_record = 0.0
         self.activation_flag = False
+
+
+def connect(entity1, entity2):
+
+    ready_flag = True
+    for output_connection in entity1.output_connections:
+        if output_connection.output  == entity2:
+            ready_flag = False
+    if ready_flag:
+        connection = Connection(n_input=entity1, n_output=entity2, durability=1.0)
+        entity2.input_connections = entity2.input_connections + [connection]
+        entity1.output_connections = entity1.output_connections + [connection]
 # def record_connections(item, record_inputs, record_outputs):
 #     if record_inputs == True:
 #         if len(item.input_connections) != 0:

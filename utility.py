@@ -180,3 +180,4 @@ def change_sensors(signal_array, type, direction):
             if ready_flag: break
 
     return signal_array
+

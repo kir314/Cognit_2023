@@ -10,6 +10,7 @@ if __name__ == "__main__":
    cognit.create_column_layer(comment = 'c_pos', n_columns = 25, n_interneuron = 1, n_dendrites = 1, n_outputs = 1, y_size = 5)
    cognit.create_column_layer(comment = 'move', n_columns = 1, n_interneuron = 4, n_dendrites = 1, n_outputs = 1, y_size = 1)
 
+   cognit.layer[0].set_receptive_field_in_radius(1)
 
    connect_inter_to_output(cognit.layer[0])
    connect_sensors_to_columns(cognit.sensor_layer[0], cognit.layer[0], 'individual')
